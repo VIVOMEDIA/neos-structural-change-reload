@@ -1,0 +1,20 @@
+{
+    "description": "Reload document on structural change",
+    "type": "neos-package",
+    "name": "vivomedia/neos-structural-change-reload",
+    "license": "MIT",
+    "require": {
+        "neos/flow": "*",
+        "neos/neos-ui": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "VIVOMEDIA\\StructuralChangeReload\\": "Classes/"
+        }
+    },
+    "extra": {
+        "neos": {
+            "package-key": "VIVOMEDIA.StructuralChangeReload"
+        }
+    }
+}
