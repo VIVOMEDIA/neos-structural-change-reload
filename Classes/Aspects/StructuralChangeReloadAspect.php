@@ -4,10 +4,12 @@ namespace VIVOMEDIA\StructuralChangeReload\Aspects;
 
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Aop\JoinPointInterface;
+use Neos\Neos\Ui\Domain\Model\Feedback\Operations\ReloadContentOutOfBand;
 use Neos\Neos\Ui\Domain\Model\Feedback\Operations\ReloadDocument;
 use Neos\Neos\Ui\Domain\Model\Feedback\Operations\RenderContentOutOfBand;
 use Neos\Neos\Ui\Domain\Model\FeedbackCollection;
 use Neos\Neos\Ui\Domain\Model\FeedbackInterface;
+use Neos\Neos\Ui\Domain\Model\RenderedNodeDomAddress;
 
 /**
  * @Flow\Scope("singleton")
@@ -40,7 +42,27 @@ class StructuralChangeReloadAspect
             ) {
                 $alternateFeedback = new ReloadDocument();
                 $joinPoint->setMethodArgument('feedback', $alternateFeedback);
+            } elseif (
+                $parentNode->getNodeType()->getConfiguration('options.reloadIfStructureHasChanged') == TRUE
+            ) {
+                $fusionContextNodeTypeTag = '<' . $parentNode->getNodeType() . '>';
+                $parentNodeFusionPath = explode('/', $feedback->getParentDomAddress()->getFusionPath());
+                for ($i = count($parentNodeFusionPath) - 1; $i >= 0; $i--) {
+                    if (strpos($parentNodeFusionPath[$i], $fusionContextNodeTypeTag) === false) {
+                        array_pop($parentNodeFusionPath);
+                    } else {
+                        break;
+                    }
+                }
 
+                $alternateFeedback = new ReloadContentOutOfBand();
+                $alternateFeedback->setNode($parentNode);
+                $parentNodeDomAddress = new RenderedNodeDomAddress();
+                $parentNodeDomAddress->setContextPath($parentNode->getContextPath());
+                $parentNodeDomAddress->setFusionPath(join('/', $parentNodeFusionPath));
+                $alternateFeedback->setNodeDomAddress($parentNodeDomAddress);
+
+                $joinPoint->setMethodArgument('feedback', $alternateFeedback);
             }
         }
 
