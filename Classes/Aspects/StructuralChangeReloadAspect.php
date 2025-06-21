@@ -35,17 +35,17 @@ class StructuralChangeReloadAspect
         $feedbackCollection = $joinPoint->getProxy();
 
         if ($feedback instanceof RenderContentOutOfBand) {
-            $parentNode = $feedback->getNode()->findParentNode();
+            $node = $feedback->getNode();
 
             if (
-                $parentNode->getNodeType()->getConfiguration('options.reloadPageIfStructureHasChanged') == TRUE
+                $node->getNodeType()->getConfiguration('options.reloadPageIfStructureHasChanged') == TRUE
             ) {
                 $alternateFeedback = new ReloadDocument();
                 $joinPoint->setMethodArgument('feedback', $alternateFeedback);
             } elseif (
-                $parentNode->getNodeType()->getConfiguration('options.reloadIfStructureHasChanged') == TRUE
+                $node->getNodeType()->getConfiguration('options.reloadIfStructureHasChanged') == TRUE
             ) {
-                $fusionContextNodeTypeTag = '<' . $parentNode->getNodeType() . '>';
+                $fusionContextNodeTypeTag = '<' . $node->getNodeType() . '>';
                 $parentNodeFusionPath = explode('/', $feedback->getParentDomAddress()->getFusionPath());
                 for ($i = count($parentNodeFusionPath) - 1; $i >= 0; $i--) {
                     if (strpos($parentNodeFusionPath[$i], $fusionContextNodeTypeTag) === false) {
@@ -56,9 +56,9 @@ class StructuralChangeReloadAspect
                 }
 
                 $alternateFeedback = new ReloadContentOutOfBand();
-                $alternateFeedback->setNode($parentNode);
+                $alternateFeedback->setNode($node);
                 $parentNodeDomAddress = new RenderedNodeDomAddress();
-                $parentNodeDomAddress->setContextPath($parentNode->getContextPath());
+                $parentNodeDomAddress->setContextPath($node->getParent()->getContextPath());
                 $parentNodeDomAddress->setFusionPath(join('/', $parentNodeFusionPath));
                 $alternateFeedback->setNodeDomAddress($parentNodeDomAddress);
 
