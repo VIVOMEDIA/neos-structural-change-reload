@@ -2,6 +2,8 @@
 
 namespace VIVOMEDIA\StructuralChangeReload\Aspects;
 
+use Neos\ContentRepository\Core\SharedModel\Node\NodeAddress;
+use Neos\ContentRepositoryRegistry\ContentRepositoryRegistry;
 use Neos\Flow\Annotations as Flow;
 use Neos\Flow\Aop\JoinPointInterface;
 use Neos\Neos\Ui\Domain\Model\Feedback\Operations\ReloadContentOutOfBand;
@@ -17,6 +19,9 @@ use Neos\Neos\Ui\Domain\Model\RenderedNodeDomAddress;
  */
 class StructuralChangeReloadAspect
 {
+    #[Flow\Inject]
+    protected ContentRepositoryRegistry $contentRepositoryRegistry;
+
     /**
      * @Flow\Around("method(Neos\Neos\Ui\Domain\Model\FeedbackCollection->add())")
      * @param JoinPointInterface $joinPoint The current join point
@@ -35,17 +40,21 @@ class StructuralChangeReloadAspect
         $feedbackCollection = $joinPoint->getProxy();
 
         if ($feedback instanceof RenderContentOutOfBand) {
-            $parentNode = $feedback->getNode()->findParentNode();
+            $node = $feedback->getNode();
+            $subgraph = $this->contentRepositoryRegistry->subgraphForNode($node);
+            $nodeTypeManager = $this->contentRepositoryRegistry->get($node->contentRepositoryId)->getNodeTypeManager();
 
+            $parentNode = $subgraph->findParentNode($node->aggregateId);
+            $nodeType = $nodeTypeManager->getNodeType($parentNode->nodeTypeName);
             if (
-                $parentNode->getNodeType()->getConfiguration('options.reloadPageIfStructureHasChanged') == TRUE
+                $nodeType->getConfiguration('options.reloadPageIfStructureHasChanged') == TRUE
             ) {
                 $alternateFeedback = new ReloadDocument();
                 $joinPoint->setMethodArgument('feedback', $alternateFeedback);
             } elseif (
-                $parentNode->getNodeType()->getConfiguration('options.reloadIfStructureHasChanged') == TRUE
+                $nodeType->getConfiguration('options.reloadIfStructureHasChanged') == TRUE
             ) {
-                $fusionContextNodeTypeTag = '<' . $parentNode->getNodeType() . '>';
+                $fusionContextNodeTypeTag = '<' . $parentNode->nodeTypeName->value . '>';
                 $parentNodeFusionPath = explode('/', $feedback->getParentDomAddress()->getFusionPath());
                 for ($i = count($parentNodeFusionPath) - 1; $i >= 0; $i--) {
                     if (strpos($parentNodeFusionPath[$i], $fusionContextNodeTypeTag) === false) {
@@ -58,7 +67,7 @@ class StructuralChangeReloadAspect
                 $alternateFeedback = new ReloadContentOutOfBand();
                 $alternateFeedback->setNode($parentNode);
                 $parentNodeDomAddress = new RenderedNodeDomAddress();
-                $parentNodeDomAddress->setContextPath($parentNode->getContextPath());
+                $parentNodeDomAddress->setContextPath(NodeAddress::fromNode($parentNode)->toJson());
                 $parentNodeDomAddress->setFusionPath(join('/', $parentNodeFusionPath));
                 $alternateFeedback->setNodeDomAddress($parentNodeDomAddress);
 
