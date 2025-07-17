@@ -4,8 +4,9 @@
     "name": "vivomedia/neos-structural-change-reload",
     "license": "MIT",
     "require": {
-        "neos/flow": "*",
-        "neos/neos-ui": "*"
+        "neos/flow": "^7.3 || ^8.0",
+        "neos/neos-ui": "^7.3 || ^8.0",
+        "neos/content-repository": "^7.3 || ^8.0",
     },
     "autoload": {
         "psr-4": {
